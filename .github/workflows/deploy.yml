@@ -1,0 +1,43 @@
+name: Deploy to Firebase Functions
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Create .env.yaml from secrets
+        run: |
+          cat > .env.yaml << EOF
+          PORT: "3000"
+          NODE_ENV: "production"
+          OPENAI_API_KEY: "${{ secrets.OPENAI_API_KEY }}"
+          OPENAI_MODEL: "gpt-3.5-turbo"
+          FIREBASE_PROJECT_ID: "carepalai-366c5"
+          API_SECRET_KEY: "${{ secrets.API_SECRET_KEY }}"
+          ALLOWED_ORIGINS: "*"
+          EOF
+
+      - name: Deploy to Firebase Functions
+        run: |
+          npm install -g firebase-tools
+          firebase deploy --only functions --token "${{ secrets.FIREBASE_TOKEN }}" --project carepalai-366c5
